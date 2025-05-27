@@ -1,57 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulario de Paciente HL7 FHIR</title>
+  <meta charset="UTF-8">
+  <title>Agendar Cita - RIS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      max-width: 600px;
+      margin: auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      color: #444;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    input[readonly] {
+      background-color: #eee;
+    }
+
+    button {
+      margin-top: 25px;
+      padding: 12px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #result {
+      margin-top: 20px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <h1>Formulario de Paciente HL7 FHIR</h1>
-    <form id="patientForm">
-        <label for="name">Nombre:</label>
-        <input type="text" id="name" name="name" required><br><br>
 
-        <label for="familyName">Apellido:</label>
-        <input type="text" id="familyName" name="familyName" required><br><br>
+  <h1>Agendar Cita de Imagenología</h1>
 
-        <label for="gender">Género:</label>
-        <select id="gender" name="gender" required>
-            <option value="male">Masculino</option>
-            <option value="female">Femenino</option>
-            <option value="other">Otro</option>
-            <option value="unknown">Desconocido</option>
-        </select><br><br>
+  <form id="appointmentForm">
+    <label for="documentoPaciente">Paciente:</label>
+    <select id="documentoPaciente" required>
+      <option value="">Cargando pacientes...</option>
+    </select>
 
-        <label for="birthDate">Fecha de Nacimiento:</label>
-        <input type="date" id="birthDate" name="birthDate" required><br><br>
+    <label for="practitionerId">Profesional radiólogo:</label>
+    <select id="practitionerId" required>
+      <option value="">--Selecciona un radiólogo--</option>
+      <option value="doc001">Dra. Carolina Rivas - ID: doc001</option>
+      <option value="doc002">Dr. Andrés Medina - ID: doc002</option>
+      <option value="doc003">Dr. Jorge Castillo - ID: doc003</option>
+    </select>
 
-        <label for="identifierSystem">Tipo de documento de identidad:</label>
-        <select id="identifierSystem" name="identifierSystem" required>
-            <option value="http://cedula">Cédula de ciudadanía</option>
-            <option value="http://pasaporte">Pasaporte</option>
-        </select><br><br>
+    <label for="start">Fecha y hora de inicio:</label>
+    <input type="datetime-local" id="start" required>
 
-        <label for="identifierValue">Número de documento:</label>
-        <input type="text" id="identifierValue" name="identifierValue" required><br><br>
+    <label for="end">Fecha y hora de fin (automático):</label>
+    <input type="datetime-local" id="end" readonly required>
 
-        <label for="cellPhone">Teléfono celular:</label>
-        <input type="text" id="cellPhone" name="cellPhone" required><br><br>
+    <button type="submit">Agendar Cita</button>
+  </form>
 
-        <label for="email">Correo electrónico:</label>
-        <input type="text" id="email" name="email" required><br><br>
+  <p id="result"></p>
 
-        <label for="address">Dirección:</label>
-        <input type="text" id="address" name="address" required><br><br>
+  <script>
+    const BASE_URL = "https://hl7-fhir-ehr-cristian.onrender.com";
 
-        <label for="city">Ciudad:</label>
-        <input type="text" id="city" name="city" required><br><br>
+    // Cargar pacientes desde el backend
+    async function cargarPacientes() {
+      try {
+        const response = await fetch(`${BASE_URL}/pacientes`);
+        const pacientes = await response.json();
 
-        <label for="postalCode">Código postal:</label>
-        <input type="text" id="postalCode" name="postalCode" required><br><br>
+        const select = document.getElementById("documentoPaciente");
+        select.innerHTML = '<option value="">--Selecciona un paciente--</option>';
 
-        <button type="submit">Enviar</button>
-    </form>
+        pacientes.forEach(p => {
+          const opcion = document.createElement("option");
+          opcion.value = p.documento;
+          opcion.textContent = `${p.nombre || "Paciente"} - ${p.tipo_documento} ${p.documento}`;
+          select.appendChild(opcion);
+        });
+      } catch (error) {
+        console.error("Error al cargar pacientes:", error);
+        document.getElementById("documentoPaciente").innerHTML = '<option value="">Error al cargar</option>';
+      }
+    }
 
-    <script src="app.js"></script>
+    // Calcular hora de fin automáticamente (30 minutos después de inicio)
+    document.getElementById("start").addEventListener("change", () => {
+      const startInput = document.getElementById("start");
+      const endInput = document.getElementById("end");
+
+      const startTime = new Date(startInput.value);
+      const hour = startTime.getHours();
+
+      // Validar que esté entre 7am y 6:30pm (último turno posible)
+      if (hour < 7 || hour > 18 || (hour === 18 && startTime.getMinutes() > 30)) {
+        alert("El horario permitido es entre 07:00 y 19:00. Última cita debe empezar antes de 18:30.");
+        startInput.value = "";
+        endInput.value = "";
+        return;
+      }
+
+      const endTime = new Date(startTime.getTime() + 30 * 60000); // 30 minutos
+      endInput.value = endTime.toISOString().slice(0, 16);
+    });
+
+    // Enviar formulario
+    document.getElementById("appointmentForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const body = {
+        documento_paciente: document.getElementById("documentoPaciente").value,
+        practitioner_id: document.getElementById("practitionerId").value,
+        start: document.getElementById("start").value,
+        end: document.getElementById("end").value
+      };
+
+      try {
+        const response = await fetch(`${BASE_URL}/fhir/Appointment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        document.getElementById("result").innerText =
+          response.ok
+            ? `✅ Cita agendada exitosamente. ID: ${result.id}`
+            : `❌ Error: ${result.detail || 'No se pudo agendar la cita.'}`;
+      } catch (error) {
+        document.getElementById("result").innerText = "❌ Error al conectar con el servidor.";
+        console.error(error);
+      }
+    });
+
+    // Ejecutar carga de pacientes al iniciar
+    window.addEventListener("DOMContentLoaded", cargarPacientes);
+  </script>
+
 </body>
 </html>
