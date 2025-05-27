@@ -1,4 +1,4 @@
-const BASE_URL = "https://hl7-fhir-ehr-cristian.onrender.com";
+const BASE_URL = "https://crear-solicitud-backend.onrender.com";
 
 // Función para cargar pacientes en el select de agendar cita
 async function cargarPacientes() {
@@ -104,7 +104,7 @@ document.getElementById('patientForm')?.addEventListener('submit', function(even
     }]
   };
 
-  fetch('https://hl7-fhir-ehr.onrender.com/patient', {
+  fetch('https://crear-solicitud-backend.onrender.com/solicitud', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patient)
