@@ -1,6 +1,6 @@
-const BASE_URL = "https://crear-solicitud-backend.onrender.com";
+const BASE_URL = "https://crear-solicitud-backend.onrender.com"; // Updated BASE_URL
 
-// Función para cargar pacientes en el select de agendar cita
+// Function to load patients into the appointment scheduling select
 async function cargarPacientes() {
   try {
     const response = await fetch(`${BASE_URL}/pacientes`);
@@ -21,7 +21,7 @@ async function cargarPacientes() {
   }
 }
 
-// Calcular hora fin automáticamente (30 min después de inicio)
+// Automatically calculate end time (30 minutes after start)
 document.getElementById("start").addEventListener("change", () => {
   const startInput = document.getElementById("start");
   const endInput = document.getElementById("end");
@@ -30,17 +30,17 @@ document.getElementById("start").addEventListener("change", () => {
   const hour = startTime.getHours();
 
   if (hour < 7 || hour > 18 || (hour === 18 && startTime.getMinutes() > 30)) {
-    alert("El horario permitido es entre 07:00 y 19:00. Última cita debe empezar antes de 18:30.");
+    alert("El horario permitido es entre 07:00 y 19:00. La última cita debe empezar antes de las 18:30.");
     startInput.value = "";
     endInput.value = "";
     return;
   }
 
-  const endTime = new Date(startTime.getTime() + 30 * 60000);
+  const endTime = new Date(startTime.getTime() + 30 * 60000); // 30 minutes
   endInput.value = endTime.toISOString().slice(0, 16);
 });
 
-// Enviar formulario de agendar cita
+// Submit appointment scheduling form
 document.getElementById("appointmentForm").addEventListener("submit", async function(event) {
   event.preventDefault();
 
@@ -69,7 +69,7 @@ document.getElementById("appointmentForm").addEventListener("submit", async func
   }
 });
 
-// (Opcional) Función para crear paciente desde un formulario con id 'patientForm'
+// (Optional) Function to create a patient from a form with id 'patientForm'
 document.getElementById('patientForm')?.addEventListener('submit', function(event) {
   event.preventDefault();
 
@@ -120,5 +120,5 @@ document.getElementById('patientForm')?.addEventListener('submit', function(even
   });
 });
 
-// Ejecutar la carga de pacientes al cargar la página
+// Execute patient loading on page load
 window.addEventListener("DOMContentLoaded", cargarPacientes);
